@@ -532,3 +532,184 @@ export default function CommentSection({ postId }) {
     </div>
   );
 }
+import { useEffect, useState } from "react";
+import { api } from "../api";
+import PostCard from "../components/PostCard";
+import CreatePost from "../components/CreatePost";
+
+export default function Home() {
+  const [posts, setPosts] = useState([]);
+  const [filter, setFilter] = useState("all");
+
+  const load = async () => {
+    const res = await api.get("/posts");
+    const all = res.data;
+    if (filter === "all") setPosts(all);
+    else setPosts(all.filter(p => p.category === filter));
+  };
+
+  useEffect(() => {
+    load();
+  }, [filter]);
+
+  return (
+    <div className="home">
+      <CreatePost onPostCreated={load} />
+
+      <div className="category-filter">
+        <select onChange={e => setFilter(e.target.value)} value={filter}>
+          <option value="all">Toutes</option>
+          <option value="Meme">Meme</option>
+          <option value="Gaming">Gaming</option>
+          <option value="Technologie">Technologie</option>
+          <option value="Art">Art</option>
+          <option value="Actualités">Actualités</option>
+        </select>
+      </div>
+
+      {posts.map(post => (
+        <PostCard key={post._id} post={post} />
+      ))}
+    </div>
+  );
+}
+import { useState, useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+
+export default function Login() {
+  const { login } = useContext(AuthContext);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+
+  const submit = async (e) => {
+    e.preventDefault();
+    try {
+      await login(username, password);
+      navigate("/");
+    } catch {
+      alert("Erreur de connexion");
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="auth-form">
+      <h2>Connexion</h2>
+      <input placeholder="Nom d'utilisateur" value={username} onChange={e => setUsername(e.target.value)} required />
+      <input placeholder="Mot de passe" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+      <button type="submit">Se connecter</button>
+    </form>
+  );
+}
+import { useState, useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+
+export default function Register() {
+  const { register } = useContext(AuthContext);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+
+  const submit = async (e) => {
+    e.preventDefault();
+    try {
+      await register(username, password);
+      navigate("/");
+    } catch {
+      alert("Erreur d'inscription");
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="auth-form">
+      <h2>Inscription</h2>
+      <input placeholder="Nom d'utilisateur" value={username} onChange={e => setUsername(e.target.value)} required />
+      <input placeholder="Mot de passe" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+      <button type="submit">S'inscrire</button>
+    </form>
+  );
+}
+import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { api } from "../api";
+import PostCard from "../components/PostCard";
+
+export default function Profile() {
+  const { username } = useParams();
+  const [posts, setPosts] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const res = await api.get("/posts");
+      setPosts(res.data.filter(p => p.author.username === username));
+    };
+    load();
+  }, [username]);
+
+  return (
+    <div className="profile">
+      <h2>Profil : {username}</h2>
+      {posts.map(post => (
+        <PostCard key={post._id} post={post} />
+      ))}
+    </div>
+  );
+}
+import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { api } from "../api";
+import CommentSection from "../components/CommentSection";
+
+export default function Post() {
+  const { id } = useParams();
+  const [post, setPost] = useState(null);
+
+  useEffect(() => {
+    const load = async () => {
+      const res = await api.get("/posts");
+      const p = res.data.find(p => p._id === id);
+      setPost(p);
+    };
+    load();
+  }, [id]);
+
+  if (!post) return <div>Chargement...</div>;
+
+  return (
+    <div className="single-post">
+      <h2>{post.title}</h2>
+      <p>{post.content}</p>
+      {post.image && <img src={post.image} alt="" />}
+      <CommentSection postId={post._id} />
+    </div>
+  );
+}
+body.dark { background: #0b1e33; color: #fff; }
+body.light { background: #f3f6fc; color: #111; }
+
+.navbar { background: #07192b; padding: 15px 30px; display: flex; justify-content: space-between; color: white; }
+.logo { font-size: 26px; font-weight: bold; }
+.nav-right a, .logout, .theme-toggle { margin-left: 10px; color: #fff; text-decoration: none; }
+.logout { background: none; border: none; cursor: pointer; }
+.theme-toggle { background: none; border: none; cursor: pointer; font-size: 18px; }
+
+.home, .profile, .single-post { max-width: 700px; margin: 20px auto; padding: 10px; }
+
+.post-card { background: #11263d; padding: 20px; margin: 20px 0; border-radius: 12px; box-shadow: 0 4px 15px #00000044; }
+.post-card h3 { margin-top: 0; }
+.post-img { width: 100%; border-radius: 10px; margin-top: 10px; }
+.post-footer { display: flex; justify-content: flex-start; align-items: center; margin-top: 10px; }
+.vote-btn { margin: 0 5px; cursor: pointer; font-size: 18px; transition: 0.15s; }
+.vote-btn:hover { transform: scale(1.3); }
+.vote-btn.up { color: #4aa8ff; }
+.vote-btn.down { color: #ff5e5e; }
+.category { background: #4aa8ff33; padding: 4px 10px; border-radius: 5px; margin-left: 10px; }
+
+.auth-form, .create-post, .comment-form { display: flex; flex-direction: column; margin: 20px 0; }
+.auth-form input, .create-post input, .create-post textarea, .comment-form input, .auth-form select, .create-post select { margin: 5px 0; padding: 8px; border-radius: 5px; border: none; }
+.auth-form button, .create-post button, .comment-form button { margin-top: 10px; padding: 8px; border-radius: 5px; cursor: pointer; background: #4aa8ff; color: white; border: none; }
+.category-filter { margin: 10px 0; }
+.comments { margin-top: 20px; }
+.comment { margin: 5px 0; }
